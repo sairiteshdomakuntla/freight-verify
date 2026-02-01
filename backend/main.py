@@ -3,11 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 import os
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import fitz  # PyMuPDF
 from io import BytesIO
 from PIL import Image
 from dotenv import load_dotenv
+from report_generator import generate_audit_pdf
 
 # Load environment variables
 load_dotenv()
@@ -59,6 +60,7 @@ class AuditResponse(BaseModel):
     data: ExtractionData
     passed: bool
     errors: List[str]
+    report_base64: Optional[str] = None
 
 def pdf_to_image_parts(file_bytes: bytes) -> List[dict]:
     """Convert ALL pages of a PDF to image parts for Gemini"""
@@ -190,10 +192,14 @@ Extract all values accurately from the documents."""
     
     passed = len(errors) == 0
     
+    # Generate PDF audit certificate
+    report_base64 = generate_audit_pdf(extraction, errors)
+    
     return AuditResponse(
         data=extraction,
         passed=passed,
-        errors=errors
+        errors=errors,
+        report_base64=report_base64
     )
 
 @app.get("/")

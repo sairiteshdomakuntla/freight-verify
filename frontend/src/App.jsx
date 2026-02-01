@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import axios from 'axios'
-import { FileText, Upload, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { FileText, Upload, CheckCircle2, XCircle, AlertCircle, Download } from 'lucide-react'
 
 function App() {
   const [files, setFiles] = useState({
@@ -12,6 +12,34 @@ function App() {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  const handleDownload = () => {
+    if (!result?.report_base64) return
+
+    // Convert Base64 to binary
+    const binaryString = atob(result.report_base64)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+    
+    // Create Blob
+    const blob = new Blob([bytes], { type: 'application/pdf' })
+    
+    // Create download link
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `Audit_Report_${result.data.invoice.invoice_number}.pdf`
+    
+    // Trigger download
+    document.body.appendChild(link)
+    link.click()
+    
+    // Cleanup
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  }
 
   const handleFileChange = (type, file) => {
     setFiles(prev => ({ ...prev, [type]: file }))
@@ -123,6 +151,19 @@ function App() {
                 </div>
               )}
             </div>
+
+            {/* Download Certificate Button */}
+            {result.report_base64 && (
+              <div className="flex justify-center mb-6">
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-bold px-8 py-3 rounded-lg shadow-lg transition-all transform hover:scale-105"
+                >
+                  <Download className="w-5 h-5" />
+                  Download Certificate
+                </button>
+              </div>
+            )}
 
             {/* Errors List */}
             {!result.passed && result.errors.length > 0 && (
